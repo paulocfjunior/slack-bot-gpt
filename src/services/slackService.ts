@@ -22,15 +22,15 @@ export class SlackService {
       const response = await axios.post(
         `${this.baseURL}/chat.postMessage`,
         {
-          channel: channel,
-          text: text
+          channel,
+          text,
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.botToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       if (!response.data.ok) {
@@ -56,17 +56,17 @@ export class SlackService {
       const response = await axios.post(
         `${this.baseURL}/chat.postMessage`,
         {
-          channel: channel,
+          channel,
           text: '...',
           unfurl_links: false,
-          unfurl_media: false
+          unfurl_media: false,
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.botToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       return response.data.ok;
@@ -87,10 +87,10 @@ export class SlackService {
         {},
         {
           headers: {
-            'Authorization': `Bearer ${this.botToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       return response.data.ok;
@@ -99,4 +99,4 @@ export class SlackService {
       return false;
     }
   }
-} 
+}

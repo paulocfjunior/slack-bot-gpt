@@ -12,10 +12,10 @@ export const verifySlackSignature = (
   body: Buffer,
   signature: string,
   timestamp: string,
-  signingSecret: string
+  signingSecret: string,
 ): boolean => {
   try {
-    const fiveMinutesAgo = Math.floor(Date.now() / 1000) - (60 * 5);
+    const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5;
     if (parseInt(timestamp) < fiveMinutesAgo) {
       return false; // Prevent replay attacks
     }
@@ -24,15 +24,15 @@ export const verifySlackSignature = (
     const baseString = `v0:${timestamp}:${body.toString()}`;
 
     // Create the expected signature
-    const expectedSignature = 'v0=' + crypto
+    const expectedSignature = `v0=${crypto
       .createHmac('sha256', signingSecret)
       .update(baseString)
-      .digest('hex');
-    
+      .digest('hex')}`;
+
     // Compare signatures using timing-safe comparison
     return crypto.timingSafeEqual(
       Buffer.from(expectedSignature),
-      Buffer.from(signature)
+      Buffer.from(signature),
     );
   } catch (error) {
     console.error('Error verifying Slack signature:', error);
@@ -49,6 +49,6 @@ export const validateTimestamp = (timestamp: string): boolean => {
   const requestTime = parseInt(timestamp, 10);
   const currentTime = Math.floor(Date.now() / 1000);
   const fiveMinutes = 5 * 60;
-  
+
   return Math.abs(currentTime - requestTime) < fiveMinutes;
-}; 
+};

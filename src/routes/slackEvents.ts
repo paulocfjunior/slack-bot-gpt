@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
-import { verifySlackSignature, validateTimestamp } from '../utils/slackVerifier.js';
+
 import { OpenAIService } from '../services/openaiService.js';
 import { SlackService } from '../services/slackService.js';
+import {
+  validateTimestamp,
+  verifySlackSignature,
+} from '../utils/slackVerifier.js';
 import { ThreadStorage } from '../utils/threadStorage.js';
 
 // Persistent storage for user -> thread mapping
@@ -35,7 +39,7 @@ interface SlackEventWrapper {
  */
 const handleUrlVerification = (req: Request, res: Response): void => {
   const { challenge } = req.body;
-  
+
   if (challenge) {
     console.log('Slack URL verification challenge received');
     res.status(200).json({ challenge });
@@ -53,53 +57,54 @@ const handleUrlVerification = (req: Request, res: Response): void => {
 const handleDirectMessage = async (
   event: SlackEvent,
   openaiService: OpenAIService,
-  slackService: SlackService
+  slackService: SlackService,
 ): Promise<void> => {
   console.log('event', event);
   const userId = event.user;
   const userMessage = event.text;
-  
+
   console.log(`Processing DM from user ${userId}: ${userMessage}`);
-  
+
   try {
     // Get or create thread for this user
     let threadId = threadStorage.get(userId);
-    
+
     if (!threadId) {
       console.log(`Creating new thread for user ${userId}`);
       const thread = await openaiService.createThread();
       threadId = thread.id;
       threadStorage.set(userId, threadId);
     }
-    
+
     // Add user message to thread
     await openaiService.addMessageToThread(threadId, userMessage);
-    
+
     // Create and start a run
     const run = await openaiService.createRun(threadId);
     console.log(`Started run ${run.id} for user ${userId}`);
-    
+
     // Wait for run to complete
     await openaiService.waitForRunCompletion(threadId, run.id);
     console.log(`Run ${run.id} completed for user ${userId}`);
-    
+
     // Get assistant's response
-    const assistantResponse = await openaiService.getLatestAssistantMessage(threadId);
-    
+    const assistantResponse =
+      await openaiService.getLatestAssistantMessage(threadId);
+
     // Send response back to user
     const success = await slackService.sendMessage(userId, assistantResponse);
-    
+
     if (success) {
       console.log(`Successfully sent response to user ${userId}`);
     } else {
       console.error(`Failed to send response to user ${userId}`);
     }
-    
   } catch (error) {
     console.error(`Error processing message for user ${userId}:`, error);
-    
+
     // Send error message to user
-    const errorMessage = 'Sorry, I encountered an error processing your message. Please try again.';
+    const errorMessage =
+      'Sorry, I encountered an error processing your message. Please try again.';
     await slackService.sendMessage(userId, errorMessage);
   }
 };
@@ -109,20 +114,24 @@ const handleDirectMessage = async (
  * @param req - Express request object
  * @param res - Express response object
  */
-export const handleSlackEvents = async (req: Request, res: Response): Promise<void> => {
+export const handleSlackEvents = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     // Verify Slack signature
     const signature = req.headers['x-slack-signature'] as string;
     const timestamp = req.headers['x-slack-request-timestamp'] as string;
     const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawBody = (req as any).rawBody as Buffer;
-    
+
     if (!signature || !timestamp || !signingSecret) {
       console.error('Missing required headers or signing secret');
       res.status(400).json({ error: 'Missing required headers' });
       return;
     }
-    
+
     // Validate timestamp
     if (!validateTimestamp(timestamp)) {
       console.error('Request timestamp is too old');
@@ -135,18 +144,18 @@ export const handleSlackEvents = async (req: Request, res: Response): Promise<vo
       res.status(401).json({ error: 'Invalid signature' });
       return;
     }
-    
+
     // Handle URL verification challenge
     if (req.body.type === 'url_verification') {
       handleUrlVerification(req, res);
       return;
     }
-    
+
     // Handle events
     if (req.body.type === 'event_callback') {
       const eventWrapper: SlackEventWrapper = req.body;
       const event = eventWrapper.event;
-      
+
       // Only handle direct messages
       if (event.type === 'message' && event.channel.startsWith('D')) {
         const appId = event.app_id;
@@ -159,16 +168,16 @@ export const handleSlackEvents = async (req: Request, res: Response): Promise<vo
         // Initialize services
         const openaiService = new OpenAIService(
           process.env.SLACK_BOT_OPENAI_API_KEY!,
-          process.env.SLACK_BOT_OPENAI_ASSISTANT_ID!
+          process.env.SLACK_BOT_OPENAI_ASSISTANT_ID!,
         );
-        
+
         const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
-        
+
         // Process the message asynchronously
         handleDirectMessage(event, openaiService, slackService).catch(error => {
           console.error('Error in async message processing:', error);
         });
-        
+
         // Respond immediately to Slack
         res.status(200).json({ ok: true });
       } else {
@@ -179,9 +188,8 @@ export const handleSlackEvents = async (req: Request, res: Response): Promise<vo
       // Unknown event type, just acknowledge
       res.status(200).json({ ok: true });
     }
-    
   } catch (error) {
     console.error('Error handling Slack event:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-}; 
+};

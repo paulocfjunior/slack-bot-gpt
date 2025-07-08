@@ -24,12 +24,16 @@ export class ThreadStorage {
       if (fs.existsSync(this.storagePath)) {
         const fileContent = fs.readFileSync(this.storagePath, 'utf8');
         const jsonData = JSON.parse(fileContent);
-        
+
         // Convert JSON object back to Map
         this.data = new Map(Object.entries(jsonData));
-        console.log(`Loaded ${this.data.size} thread mappings from ${STORAGE_FILE}`);
+        console.log(
+          `Loaded ${this.data.size} thread mappings from ${STORAGE_FILE}`,
+        );
       } else {
-        console.log(`No existing thread storage found. Creating new file: ${STORAGE_FILE}`);
+        console.log(
+          `No existing thread storage found. Creating new file: ${STORAGE_FILE}`,
+        );
         this.saveToFile();
       }
     } catch (error) {
@@ -114,4 +118,4 @@ export class ThreadStorage {
   size(): number {
     return this.data.size;
   }
-} 
+}

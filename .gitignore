@@ -8,6 +8,7 @@ yarn-error.log*
 .env
 .env.local
 .env.development.local
+.env.test
 .env.test.local
 .env.production.local
 
@@ -43,6 +44,9 @@ jspm_packages/
 
 # Optional eslint cache
 .eslintcache
+
+# Prettier cache
+.prettiercache
 
 # Optional REPL history
 .node_repl_history

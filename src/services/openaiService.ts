@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-function handleError(error: any) {
+function handleError(error: unknown) {
   if (axios.isAxiosError(error)) {
     console.error('OpenAI API Error:', error.response?.data || error.message);
   } else {
@@ -13,7 +13,7 @@ interface Thread {
   id: string;
   object: string;
   created_at: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface Message {
@@ -26,7 +26,7 @@ interface Message {
     type: string;
     text: {
       value: string;
-      annotations: any[];
+      annotations: unknown[];
     };
   }>;
 }
@@ -37,12 +37,20 @@ interface Run {
   created_at: number;
   thread_id: string;
   assistant_id: string;
-  status: 'queued' | 'in_progress' | 'requires_action' | 'cancelling' | 'cancelled' | 'failed' | 'completed' | 'expired';
+  status:
+    | 'queued'
+    | 'in_progress'
+    | 'requires_action'
+    | 'cancelling'
+    | 'cancelled'
+    | 'failed'
+    | 'completed'
+    | 'expired';
   started_at?: number;
   expires_at?: number;
   completed_at?: number;
-  last_error?: any;
-  required_action?: any;
+  last_error?: unknown;
+  required_action?: unknown;
 }
 
 /**
@@ -66,16 +74,16 @@ export class OpenAIService {
     try {
       const response = await axios.post(
         `${this.baseURL}/threads`,
-        {}, 
+        {},
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        }
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        },
       );
-      
+
       return response.data;
     } catch (error) {
       handleError(error);
@@ -89,23 +97,26 @@ export class OpenAIService {
    * @param content - The message content
    * @returns Promise<Message> - The created message
    */
-  async addMessageToThread(threadId: string, content: string): Promise<Message> {
+  async addMessageToThread(
+    threadId: string,
+    content: string,
+  ): Promise<Message> {
     try {
       const response = await axios.post(
         `${this.baseURL}/threads/${threadId}/messages`,
         {
           role: 'user',
-          content: content
+          content,
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        }
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        },
       );
-      
+
       return response.data;
     } catch (error) {
       handleError(error);
@@ -123,17 +134,17 @@ export class OpenAIService {
       const response = await axios.post(
         `${this.baseURL}/threads/${threadId}/runs`,
         {
-          assistant_id: this.assistantId
+          assistant_id: this.assistantId,
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        }
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        },
       );
-      
+
       return response.data;
     } catch (error) {
       handleError(error);
@@ -153,12 +164,12 @@ export class OpenAIService {
         `${this.baseURL}/threads/${threadId}/runs/${runId}`,
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        }
+            Authorization: `Bearer ${this.apiKey}`,
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        },
       );
-      
+
       return response.data;
     } catch (error) {
       handleError(error);
@@ -174,18 +185,22 @@ export class OpenAIService {
    */
   async waitForRunCompletion(threadId: string, runId: string): Promise<Run> {
     let run: Run;
-    
+
     do {
       // Wait 1 second before checking again
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       run = await this.getRunStatus(threadId, runId);
-      
-      if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {
+
+      if (
+        run.status === 'failed' ||
+        run.status === 'cancelled' ||
+        run.status === 'expired'
+      ) {
         throw new Error(`Run failed with status: ${run.status}`);
       }
     } while (run.status !== 'completed');
-    
+
     return run;
   }
 
@@ -200,12 +215,12 @@ export class OpenAIService {
         `${this.baseURL}/threads/${threadId}/messages`,
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'OpenAI-Beta': 'assistants=v2'
-          }
-        }
+            Authorization: `Bearer ${this.apiKey}`,
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        },
       );
-      
+
       return response.data.data;
     } catch (error) {
       handleError(error);
@@ -221,25 +236,27 @@ export class OpenAIService {
   async getLatestAssistantMessage(threadId: string): Promise<string> {
     try {
       const messages = await this.getThreadMessages(threadId);
-      
+
       // Find the latest assistant message
       const assistantMessage = messages.find(msg => msg.role === 'assistant');
-      
+
       if (!assistantMessage) {
         throw new Error('No assistant message found in thread');
       }
-      
+
       // Extract text content from the message
-      const textContent = assistantMessage.content.find(content => content.type === 'text');
-      
+      const textContent = assistantMessage.content.find(
+        content => content.type === 'text',
+      );
+
       if (!textContent) {
         throw new Error('No text content found in assistant message');
       }
-      
+
       return textContent.text.value;
     } catch (error) {
       handleError(error);
       throw new Error('Failed to get assistant response');
     }
   }
-} 
+}
