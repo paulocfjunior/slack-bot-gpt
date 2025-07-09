@@ -20,16 +20,16 @@ setupGracefulProcessEnd();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Default JSON parsing for most endpoints
-app.use(express.json());
-
-// Slack events endpoint - raw body for signature verification
+// Slack events endpoint - raw body for signature verification (MUST come before JSON parsing)
 app.use('/slack/events', express.raw({ type: 'application/json' }));
 app.use('/slack/events', slackBodyParser);
 
 // Send message endpoint - flexible body parsing for both text and JSON
 app.use('/api/send-message', express.raw({ type: '*/*' }));
 app.use('/api/send-message', sendMessageBodyParser);
+
+// Default JSON parsing for other endpoints (comes after route-specific middleware)
+app.use(express.json());
 
 app.use('/', routes);
 app.use(errorHandler);

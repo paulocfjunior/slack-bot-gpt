@@ -2,14 +2,14 @@ import crypto from 'crypto';
 
 /**
  * Verifies Slack request signature to ensure requests come from Slack
- * @param body - Raw request body as buffer
+ * @param body - Raw request body as buffer or string
  * @param signature - x-slack-signature header value
  * @param timestamp - x-slack-request-timestamp header value
  * @param signingSecret - Slack app signing secret
  * @returns boolean indicating if signature is valid
  */
 export const verifySlackSignature = (
-  body: Buffer,
+  body: Buffer | string,
   signature: string,
   timestamp: string,
   signingSecret: string,
@@ -20,8 +20,11 @@ export const verifySlackSignature = (
       return false; // Prevent replay attacks
     }
 
+    // Convert body to string if it's a Buffer
+    const bodyString = Buffer.isBuffer(body) ? body.toString() : body;
+
     // Create the signature base string
-    const baseString = `v0:${timestamp}:${body.toString()}`;
+    const baseString = `v0:${timestamp}:${bodyString}`;
 
     // Create the expected signature
     const expectedSignature = `v0=${crypto

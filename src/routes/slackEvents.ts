@@ -175,7 +175,6 @@ export const handleSlackEvents = async (
         }
 
         const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
-        console.log('event', event);
         const messageTs = await slackService.sendTypingIndicator(event.channel);
 
         // Initialize services

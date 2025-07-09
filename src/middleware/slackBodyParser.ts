@@ -5,7 +5,15 @@ export const slackBodyParser = (
   res: Response,
   next: NextFunction,
 ) => {
-  const rawBody = req.body; // Buffer
+  const rawBody = req.body;
+
+  if (!Buffer.isBuffer(rawBody)) {
+    console.error('Expected Buffer for Slack events, got:', typeof rawBody);
+    return res
+      .status(400)
+      .json({ error: 'Invalid body format for Slack events' });
+  }
+
   const bodyString = rawBody.toString('utf8');
   let parsedBody;
 
@@ -18,7 +26,7 @@ export const slackBodyParser = (
 
   // Attach both to req for downstream use
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (req as any).rawBody = rawBody;
+  (req as any).rawBody = bodyString; // Store the original string for signature verification
   req.body = parsedBody;
 
   next();

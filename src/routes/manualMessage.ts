@@ -58,7 +58,6 @@ export const handleSendMessage = async (
     const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
 
     // Clean username (remove @ if present)
-    console.log('username', username);
     const cleanUsername = username.startsWith('@')
       ? username.slice(1)
       : username;
