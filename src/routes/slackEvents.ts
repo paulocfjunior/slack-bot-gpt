@@ -165,6 +165,7 @@ export const handleSlackEvents = async (
         event.type === 'message' &&
         event.user &&
         !event.hidden &&
+        !!event.text &&
         event.channel.startsWith('D')
       ) {
         const appId = event.app_id;

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 12px 24px;
+        transform: scale(2);
+        transform-origin: top left;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        justify-content: start;
+        font-family: 'Inter', sans-serif;
+        width: 100%;
+        gap: 12px;
+        border-left: 1px solid #F1F4FD;
+        padding-left: 12px;
+      }
+      .name {
+        font-size: 13px;
+        line-height: 16px;
+        letter-spacing: -0.01em;
+        color: #93A3AB;
+      }
+      .value {
+        font-size: 24px;
+        line-height: 24px;
+        font-weight: 500;
+        color: #000000;
+      }
+      .footer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+      }
+      .footer-diff {
+        font-size: 13px;
+        line-height: 16px;
+        font-weight: 600;
+        color: #696868;
+      }
+      .footer-budget {
+        font-size: 13px;
+        line-height: 16px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: #93A3AB;
+      }
+      .footer-diff.positive {
+        color: #65C565;
+      }
+      .footer-diff.negative {
+        color: #E02424;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="name"><%= kpiName %></div>
+      <div class="value"><%= kpiValue %></div>
+      <div class="footer">
+        <div class="footer-diff <%= kpiFooterDiffColor %>">
+            <%= kpiFooterDiff %>
+        </div>
+        <div class="footer-budget">
+            vs. Budget
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
