@@ -4,13 +4,6 @@ import { OpenAIService } from '../services/openaiService';
 import { SlackService } from '../services/slackService';
 import { ThreadStorage } from '../utils/threadStorage';
 
-// Types for the request body
-interface SendMessageRequest {
-  username: string;
-  message: string;
-}
-
-// Types for the response
 interface SendMessageResponse {
   success: boolean;
   message?: string;
@@ -20,45 +13,24 @@ interface SendMessageResponse {
 }
 
 /**
- * Validates the request body for sending a manual message
- * @param body - The request body
- * @returns Validation result with error message if invalid
- */
-const validateSendMessageRequest = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  body: any,
-): { isValid: boolean; error?: string } => {
-  if (!body) {
-    return { isValid: false, error: 'Request body is required' };
-  }
-
-  if (!body.username || typeof body.username !== 'string') {
-    return {
-      isValid: false,
-      error: 'Username is required and must be a string',
-    };
-  }
-
-  if (!body.message || typeof body.message !== 'string') {
-    return {
-      isValid: false,
-      error: 'Message is required and must be a string',
-    };
-  }
-
-  if (body.username.trim().length === 0) {
-    return { isValid: false, error: 'Username cannot be empty' };
-  }
-
-  if (body.message.trim().length === 0) {
-    return { isValid: false, error: 'Message cannot be empty' };
-  }
-
-  return { isValid: true };
-};
-
-/**
  * Handles sending a manual message to a user via the Slack bot
+ *
+ * @api {POST} /api/send-message?username={username} Send Message
+ * @apiParam {String} username - The Slack username (query parameter)
+ * @apiBody {String|Object} message - The message content (supports both plain text and JSON with message field)
+ *
+ * @example
+ * // Plain text (recommended for markdown)
+ * curl -X POST -H 'Content-type: text/plain' \
+ *   -d "Hello! This is a **bold** message with\nline breaks." \
+ *   "http://localhost:3000/api/send-message?username=john.doe"
+ *
+ * @example
+ * // JSON format (backward compatibility)
+ * curl -X POST -H 'Content-type: application/json' \
+ *   -d '{"message": "Hello! This is a **bold** message with\\nline breaks."}' \
+ *   "http://localhost:3000/api/send-message?username=john.doe"
+ *
  * @param req - Express request object
  * @param res - Express response object
  */
@@ -67,23 +39,26 @@ export const handleSendMessage = async (
   res: Response,
 ): Promise<void> => {
   try {
-    // Validate request body
-    const validation = validateSendMessageRequest(req.body);
-    if (!validation.isValid) {
+    // Get username from query parameter
+    const { username } = req.query;
+
+    if (!username || typeof username !== 'string') {
       const response: SendMessageResponse = {
         success: false,
-        error: validation.error,
+        error: 'Username is required as a query parameter',
       };
       res.status(400).json(response);
       return;
     }
 
-    const { username, message } = req.body as SendMessageRequest;
+    // Get message from request body (already parsed by middleware)
+    const message = req.body as string;
 
     // Initialize Slack service
     const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
 
     // Clean username (remove @ if present)
+    console.log('username', username);
     const cleanUsername = username.startsWith('@')
       ? username.slice(1)
       : username;
@@ -112,7 +87,10 @@ export const handleSendMessage = async (
     }
 
     // Send the message
-    const messageSent = await slackService.sendMessage(channelId, message);
+    const messageSent = await slackService.sendMarkdownMessage(
+      channelId,
+      message,
+    );
     if (!messageSent) {
       const response: SendMessageResponse = {
         success: false,

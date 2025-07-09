@@ -1,3 +1,4 @@
+import { markdownToBlocks } from '@tryfabric/mack';
 import axios from 'axios';
 
 interface SlackMember {
@@ -184,6 +185,43 @@ export class SlackService {
       return true;
     } catch (error) {
       console.error('Error sending Slack message:', error);
+      return false;
+    }
+  }
+
+  async sendMarkdownMessage(
+    channel: string,
+    markdown: string,
+  ): Promise<boolean> {
+    try {
+      const blocks = await markdownToBlocks(markdown);
+      console.log('blocks', blocks);
+      const response = await axios.post(
+        `${this.baseURL}/chat.postMessage`,
+        {
+          channel,
+          blocks,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (!response.data.ok) {
+        console.error(
+          'Slack API error on chat.postMessage (markdown):',
+          response.data.error,
+        );
+        return false;
+      }
+
+      console.log(`Message sent to ${channel} (markdown): ${markdown}`);
+      return true;
+    } catch (error) {
+      console.error('Error sending Slack message (markdown):', error);
       return false;
     }
   }

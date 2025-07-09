@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { sendMessageBodyParser } from './middleware/sendMessageBodyParser';
 import { slackBodyParser } from './middleware/slackBodyParser';
 import routes from './routes';
 import { printRoutes } from './utils/routeInspector';
@@ -19,9 +20,17 @@ setupGracefulProcessEnd();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Default JSON parsing for most endpoints
 app.use(express.json());
+
+// Slack events endpoint - raw body for signature verification
 app.use('/slack/events', express.raw({ type: 'application/json' }));
 app.use('/slack/events', slackBodyParser);
+
+// Send message endpoint - flexible body parsing for both text and JSON
+app.use('/api/send-message', express.raw({ type: '*/*' }));
+app.use('/api/send-message', sendMessageBodyParser);
+
 app.use('/', routes);
 app.use(errorHandler);
 app.use('*', notFoundHandler);

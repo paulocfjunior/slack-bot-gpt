@@ -33,7 +33,11 @@ router.get('/routes', (req, res) => {
     // Simple route listing based on our known routes
     const routes = [
       { method: 'GET', path: '/health' },
-      { method: 'POST', path: '/api/send-message' },
+      {
+        method: 'POST',
+        path: '/api/send-message?username={username}',
+        description: 'Send message to user (plain text body)',
+      },
       { method: 'POST', path: '/slack/events' },
       { method: 'GET', path: '/debug/threads' },
       { method: 'GET', path: '/debug/routes' },

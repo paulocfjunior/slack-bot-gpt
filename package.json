@@ -13,7 +13,7 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
-    "send-message": "curl -X POST -H 'Content-type: application/json' -d '{\"username\": \"$1\", \"message\": \"$2\"}' http://localhost:3000/api/send-message",
+    "send-message": "curl -X POST -H 'Content-type: text/plain' -d \"$2\" \"http://localhost:3000/api/send-message?username=$1\"",
     "test": "jest --verbose",
     "test:watch": "jest --verbose --watch",
     "test:coverage": "jest --verbose --coverage",
@@ -30,6 +30,7 @@
   "author": "Paulo Junior",
   "license": "MIT",
   "dependencies": {
+    "@tryfabric/mack": "^1.2.1",
     "@types/express": "^4.17.23",
     "axios": "^1.10.0",
     "dotenv": "^17.1.0",
