@@ -20,6 +20,7 @@ interface SlackEvent {
   channel: string;
   ts: string;
   event_ts: string;
+  hidden?: boolean;
 }
 
 interface SlackEventWrapper {
@@ -58,8 +59,8 @@ const handleDirectMessage = async (
   event: SlackEvent,
   openaiService: OpenAIService,
   slackService: SlackService,
+  messageTs?: string | null,
 ): Promise<void> => {
-  console.log('event', event);
   const userId = event.user;
   const userMessage = event.text;
 
@@ -91,7 +92,10 @@ const handleDirectMessage = async (
     const assistantResponse =
       await openaiService.getLatestAssistantMessage(threadId);
 
-    // Send response back to user
+    if (messageTs) {
+      await slackService.deleteMessage(userId, messageTs);
+    }
+
     const success = await slackService.sendMessage(userId, assistantResponse);
 
     if (success) {
@@ -157,7 +161,7 @@ export const handleSlackEvents = async (
       const event = eventWrapper.event;
 
       // Only handle direct messages
-      if (event.type === 'message' && event.channel.startsWith('D')) {
+      if (event.type === 'message' && event.user && !event.hidden && event.channel.startsWith('D')) {
         const appId = event.app_id;
         if (appId === process.env.SLACK_BOT_APP_ID) {
           console.log('Acknoledged message from itself event', appId);
@@ -165,26 +169,30 @@ export const handleSlackEvents = async (
           return;
         }
 
+        const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
+        console.log('event', event);
+        const messageTs = await slackService.sendTypingIndicator(event.channel);
+
         // Initialize services
         const openaiService = new OpenAIService(
           process.env.SLACK_BOT_OPENAI_API_KEY!,
           process.env.SLACK_BOT_OPENAI_ASSISTANT_ID!,
         );
 
-        const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
-
         // Process the message asynchronously
-        handleDirectMessage(event, openaiService, slackService).catch(error => {
+        handleDirectMessage(event, openaiService, slackService, messageTs).catch(error => {
           console.error('Error in async message processing:', error);
         });
 
         // Respond immediately to Slack
         res.status(200).json({ ok: true });
       } else {
+        console.log('Not a direct message, just acknowledging', event);
         // Not a direct message, just acknowledge
         res.status(200).json({ ok: true });
       }
     } else {
+      console.log('Unknown event type, just acknowledging', req.body.type);
       // Unknown event type, just acknowledge
       res.status(200).json({ ok: true });
     }

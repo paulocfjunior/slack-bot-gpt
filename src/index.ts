@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { handleSlackEvents } from './routes/slackEvents.js';
+import { handleSlackEvents } from './routes/slackEvents';
+import { handleSendMessage } from './routes/manualMessage';
 
 dotenv.config();
 
@@ -38,6 +39,9 @@ app.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// Manual message endpoint
+app.post('/api/send-message', handleSendMessage);
 
 // Debug endpoint to view thread mappings (development only)
 app.get('/debug/threads', (req, res) => {
@@ -88,6 +92,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Slack events endpoint: http://localhost:${PORT}/slack/events`);
+  console.log(`Manual message endpoint: http://localhost:${PORT}/api/send-message`);
   console.log(`Health check endpoint: http://localhost:${PORT}/health`);
 });
 

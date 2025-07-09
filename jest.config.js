@@ -22,4 +22,7 @@ export default {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testTimeout: 10000,
   moduleFileExtensions: ['ts', 'js', 'json'],
+  moduleNameMapping: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
 }; 

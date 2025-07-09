@@ -134,9 +134,7 @@ describe('SlackService', () => {
         'https://slack.com/api/chat.postMessage',
         {
           channel,
-          text: '...',
-          unfurl_links: false,
-          unfurl_media: false,
+          text: 'Thinking...',
         },
         {
           headers: {
@@ -217,6 +215,169 @@ describe('SlackService', () => {
       const result = await slackService.validateToken();
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('lookupUserByUsername', () => {
+    it('should find user by username via email lookup', async () => {
+      const username = 'testuser';
+      
+      mockedAxios.post.mockResolvedValue({
+        data: { ok: true, user: { id: 'U1234567890', name: 'testuser' } },
+      });
+
+      const result = await slackService.lookupUserByUsername(username);
+
+      expect(result).toBe('U1234567890');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/users.lookupByEmail',
+        {
+          email: 'testuser@slack.com',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mockBotToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
+    it('should find user by username via users.list when email lookup fails', async () => {
+      const username = 'testuser';
+      
+      // Email lookup fails
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { ok: false, error: 'users_not_found' },
+      });
+
+      // Users list succeeds
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          ok: true,
+          members: [
+            { id: 'U1234567890', name: 'testuser', profile: { display_name: 'Test User' } },
+          ],
+        },
+      });
+
+      const result = await slackService.lookupUserByUsername(username);
+
+      expect(result).toBe('U1234567890');
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://slack.com/api/users.list',
+        {
+          headers: {
+            Authorization: `Bearer ${mockBotToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
+    it('should handle username with @ symbol', async () => {
+      const username = '@testuser';
+      
+      mockedAxios.post.mockResolvedValue({
+        data: { ok: true, user: { id: 'U1234567890', name: 'testuser' } },
+      });
+
+      const result = await slackService.lookupUserByUsername(username);
+
+      expect(result).toBe('U1234567890');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/users.lookupByEmail',
+        {
+          email: 'testuser@slack.com',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mockBotToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
+    it('should return null when user is not found', async () => {
+      const username = 'nonexistentuser';
+      
+      // Email lookup fails
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { ok: false, error: 'users_not_found' },
+      });
+
+      // Users list succeeds but user not found
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          ok: true,
+          members: [
+            { id: 'U1234567890', name: 'otheruser', profile: { display_name: 'Other User' } },
+          ],
+        },
+      });
+
+      const result = await slackService.lookupUserByUsername(username);
+
+      expect(result).toBe(null);
+    });
+
+    it('should return null when axios throws an error', async () => {
+      const username = 'testuser';
+      
+      mockedAxios.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await slackService.lookupUserByUsername(username);
+
+      expect(result).toBe(null);
+    });
+  });
+
+  describe('openDirectMessage', () => {
+    it('should open DM channel successfully', async () => {
+      const userId = 'U1234567890';
+      
+      mockedAxios.post.mockResolvedValue({
+        data: { ok: true, channel: { id: 'D1234567890' } },
+      });
+
+      const result = await slackService.openDirectMessage(userId);
+
+      expect(result).toBe('D1234567890');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://slack.com/api/conversations.open',
+        {
+          users: userId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${mockBotToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
+    it('should return null when DM channel cannot be opened', async () => {
+      const userId = 'U1234567890';
+      
+      mockedAxios.post.mockResolvedValue({
+        data: { ok: false, error: 'user_not_found' },
+      });
+
+      const result = await slackService.openDirectMessage(userId);
+
+      expect(result).toBe(null);
+    });
+
+    it('should return null when axios throws an error', async () => {
+      const userId = 'U1234567890';
+      
+      mockedAxios.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await slackService.openDirectMessage(userId);
+
+      expect(result).toBe(null);
     });
   });
 

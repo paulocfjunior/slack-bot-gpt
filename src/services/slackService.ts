@@ -12,6 +12,96 @@ export class SlackService {
   }
 
   /**
+   * Looks up a user by username and returns their user ID
+   * @param username - The username to look up (without @ symbol)
+   * @returns Promise<string | null> - User ID if found, null otherwise
+   */
+  async lookupUserByUsername(username: string): Promise<string | null> {
+    try {
+      // Remove @ symbol if present
+      const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+      
+      const response = await axios.post(
+        `${this.baseURL}/users.lookupByEmail`,
+        {
+          email: `${cleanUsername}@slack.com`, // This is a fallback approach
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (response.data.ok && response.data.user) {
+        return response.data.user.id;
+      }
+
+      // If email lookup fails, try users.list to find by display name
+      const usersResponse = await axios.get(
+        `${this.baseURL}/users.list`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (usersResponse.data.ok && usersResponse.data.members) {
+        const user = usersResponse.data.members.find((member: any) => 
+          member.name === cleanUsername || 
+          member.profile?.display_name === cleanUsername ||
+          member.profile?.real_name === cleanUsername
+        );
+        
+        if (user) {
+          return user.id;
+        }
+      }
+
+      console.error('User not found:', username);
+      return null;
+    } catch (error) {
+      console.error('Error looking up user by username:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Opens a direct message channel with a user
+   * @param userId - The user ID to open DM with
+   * @returns Promise<string | null> - Channel ID if successful, null otherwise
+   */
+  async openDirectMessage(userId: string): Promise<string | null> {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/conversations.open`,
+        {
+          users: userId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (response.data.ok && response.data.channel) {
+        return response.data.channel.id;
+      }
+
+      console.error('Failed to open DM channel:', response.data.error);
+      return null;
+    } catch (error) {
+      console.error('Error opening direct message channel:', error);
+      return null;
+    }
+  }
+
+  /**
    * Sends a message to a user via Slack API
    * @param channel - The channel ID (user ID for DMs)
    * @param text - The message text to send
@@ -34,7 +124,7 @@ export class SlackService {
       );
 
       if (!response.data.ok) {
-        console.error('Slack API error:', response.data.error);
+        console.error('Slack API error on chat.postMessage:', response.data.error);
         return false;
       }
 
@@ -47,19 +137,18 @@ export class SlackService {
   }
 
   /**
-   * Sends a typing indicator to a channel
-   * @param channel - The channel ID
+   * Deletes a message on a channel via Slack API
+   * @param channel - The channel ID (user ID for DMs)
+   * @param ts - The timestamp of the message to delete
    * @returns Promise<boolean> - Success status
    */
-  async sendTypingIndicator(channel: string): Promise<boolean> {
+  async deleteMessage(channel: string, ts: string): Promise<boolean> {
     try {
       const response = await axios.post(
-        `${this.baseURL}/chat.postMessage`,
+        `${this.baseURL}/chat.delete`,
         {
           channel,
-          text: '...',
-          unfurl_links: false,
-          unfurl_media: false,
+          ts,
         },
         {
           headers: {
@@ -69,10 +158,83 @@ export class SlackService {
         },
       );
 
-      return response.data.ok;
+      if (!response.data.ok) {
+        console.error('Slack API error on chat.delete:', response.data.error);
+        return false;
+      }
+
+      console.log(`Message deleted on ${channel} at ${ts}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting Slack message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Updates a message on a channel via Slack API
+   * @param channel - The channel ID (user ID for DMs)
+   * @param text - The message text to send
+   * @param ts - The timestamp of the message to update
+   * @returns Promise<boolean> - Success status
+   */
+  async updateMessage(channel: string, text: string, ts: string): Promise<boolean> {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/chat.update`,
+        {
+          channel,
+          text,
+          ts,
+          as_user: true,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (!response.data.ok) {
+        console.error('Slack API error on chat.update:', response.data.error, {ts});
+        return false;
+      }
+
+      console.log(`Message updated on ${channel} at ${ts}: ${text}`);
+      return true;
+    } catch (error) {
+      console.error('Error updating Slack message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a typing indicator to a channel
+   * @param channel - The channel ID
+   * @param userId - The user ID
+   * @returns Promise<string | null> - Message timestamp if successful, null otherwise
+   */
+  async sendTypingIndicator(channel: string): Promise<string | null> {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/chat.postMessage`,
+        {
+          channel,
+          text: 'Thinking...',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.botToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      return response.data.ts;
     } catch (error) {
       console.error('Error sending typing indicator:', error);
-      return false;
+      return null;
     }
   }
 

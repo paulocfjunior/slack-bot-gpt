@@ -102,6 +102,35 @@ Handles Slack events and URL verification challenges.
 - `url_verification` - Slack URL verification challenge
 - `event_callback` with `message.im` - Direct messages to the bot
 
+### POST `/api/send-message`
+Manually send a message to a user via the Slack bot.
+
+**Request Body:**
+```json
+{
+  "username": "username",
+  "message": "Your message here"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Message sent successfully to username",
+  "userId": "U1234567890",
+  "channelId": "D1234567890"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Error description"
+}
+```
+
 ### GET `/health`
 Health check endpoint returning server status and uptime.
 
@@ -120,7 +149,8 @@ Health check endpoint returning server status and uptime.
 src/
 ├── index.ts              # Main server entry point
 ├── routes/
-│   └── slackEvents.ts    # Slack events endpoint handler
+│   ├── slackEvents.ts    # Slack events endpoint handler
+│   └── manualMessage.ts  # Manual message sending endpoint
 ├── services/
 │   ├── openaiService.ts  # OpenAI Assistant API integration
 │   └── slackService.ts   # Slack API integration

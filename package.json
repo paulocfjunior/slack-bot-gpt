@@ -13,10 +13,11 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
-    "test": "jest",
+    "send-message": "curl -X POST -H 'Content-type: application/json' -d '{\"username\": \"$1\", \"message\": \"$2\"}' http://localhost:3000/api/send-message",
+    "test": "jest --verbose",
     "test:watch": "jest --verbose --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test:coverage": "jest --verbose --coverage",
+    "test:ci": "jest --ci --verbose --coverage --watchAll=false"
   },
   "keywords": [],
   "author": "",
