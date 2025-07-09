@@ -1,8 +1,7 @@
 # Slack Bot with OpenAI Assistant API
 
-[![CI](https://github.com/yourusername/slack-app-test/workflows/CI/badge.svg)](https://github.com/yourusername/slack-app-test/actions/workflows/ci.yml)
-[![Security](https://github.com/yourusername/slack-app-test/workflows/Security/badge.svg)](https://github.com/yourusername/slack-app-test/actions/workflows/security.yml)
-[![Codecov](https://codecov.io/gh/yourusername/slack-app-test/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/slack-app-test)
+[![CI](https://github.com/paulocfjunior/slack-bot-gpt/workflows/CI/badge.svg)](https://github.com/paulocfjunior/slack-bot-gpt/actions/workflows/ci.yml)
+[![Security](https://github.com/paulocfjunior/slack-bot-gpt/workflows/Security/badge.svg)](https://github.com/paulocfjunior/slack-bot-gpt/actions/workflows/security.yml)
 
 A Node.js TypeScript backend that creates a Slack bot capable of receiving direct messages from users, forwarding them to OpenAI Assistant API, and responding with the AI's reply.
 
