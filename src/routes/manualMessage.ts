@@ -54,6 +54,19 @@ export const handleSendMessage = async (
     // Get message from request body (already parsed by middleware)
     const message = req.body as string;
 
+    if (
+      !message ||
+      typeof message !== 'string' ||
+      message.trim().length === 0
+    ) {
+      const response: SendMessageResponse = {
+        success: false,
+        error: 'Message is required in the request body as plain text',
+      };
+      res.status(400).json(response);
+      return;
+    }
+
     // Initialize Slack service
     const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
 

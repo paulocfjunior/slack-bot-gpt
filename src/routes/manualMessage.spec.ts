@@ -30,7 +30,7 @@ interface MockSlackService {
   openDirectMessage: jest.MockedFunction<
     (userId: string) => Promise<string | null>
   >;
-  sendMessage: jest.MockedFunction<
+  sendMarkdownMessage: jest.MockedFunction<
     (channel: string, text: string) => Promise<boolean>
   >;
   sendTypingIndicator: jest.MockedFunction<
@@ -151,7 +151,7 @@ describe('handleSendMessage', () => {
       openDirectMessage: jest.fn() as jest.MockedFunction<
         (userId: string) => Promise<string | null>
       >,
-      sendMessage: jest.fn() as jest.MockedFunction<
+      sendMarkdownMessage: jest.fn() as jest.MockedFunction<
         (channel: string, text: string) => Promise<boolean>
       >,
       sendTypingIndicator: jest.fn() as jest.MockedFunction<
@@ -270,8 +270,25 @@ describe('handleSendMessage', () => {
   });
 
   describe('Request validation', () => {
-    it('should return 400 when request body is missing', async () => {
+    it('should return 400 when username query parameter is missing', async () => {
       mockRequest = {
+        query: {},
+        body: 'Hello world',
+      };
+      mockResponse = getMockResponse();
+
+      await handleSendMessage(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Username is required as a query parameter',
+      });
+    });
+
+    it('should return 400 when message body is missing', async () => {
+      mockRequest = {
+        query: { username: 'testuser' },
         body: undefined,
       };
       mockResponse = getMockResponse();
@@ -281,15 +298,14 @@ describe('handleSendMessage', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        error: 'Request body is required',
+        error: 'Message is required in the request body as plain text',
       });
     });
 
-    it('should return 400 when username is missing', async () => {
+    it('should return 400 when message body is empty', async () => {
       mockRequest = {
-        body: {
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: '',
       };
       mockResponse = getMockResponse();
 
@@ -298,75 +314,20 @@ describe('handleSendMessage', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        error: 'Username is required and must be a string',
-      });
-    });
-
-    it('should return 400 when message is missing', async () => {
-      mockRequest = {
-        body: {
-          username: 'testuser',
-        },
-      };
-      mockResponse = getMockResponse();
-
-      await handleSendMessage(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        error: 'Message is required and must be a string',
-      });
-    });
-
-    it('should return 400 when username is empty', async () => {
-      mockRequest = {
-        body: {
-          username: '',
-          message: 'Hello world',
-        },
-      };
-      mockResponse = getMockResponse();
-
-      await handleSendMessage(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        error: 'Username is required and must be a string',
-      });
-    });
-
-    it('should return 400 when message is empty', async () => {
-      mockRequest = {
-        body: {
-          username: 'testuser',
-          message: '',
-        },
-      };
-      mockResponse = getMockResponse();
-
-      await handleSendMessage(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        error: 'Message is required and must be a string',
+        error: 'Message is required in the request body as plain text',
       });
     });
 
     it('should handle username with @ symbol', async () => {
       mockRequest = {
-        body: {
-          username: '@testuser',
-          message: 'Hello world',
-        },
+        query: { username: '@testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -390,10 +351,8 @@ describe('handleSendMessage', () => {
   describe('User lookup', () => {
     it('should return 404 when user is not found', async () => {
       mockRequest = {
-        body: {
-          username: 'nonexistentuser',
-          message: 'Hello world',
-        },
+        query: { username: 'nonexistentuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
@@ -412,10 +371,8 @@ describe('handleSendMessage', () => {
   describe('Direct message channel', () => {
     it('should return 500 when DM channel cannot be opened', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
@@ -436,16 +393,14 @@ describe('handleSendMessage', () => {
   describe('Message sending', () => {
     it('should return 500 when message fails to send', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(false);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(false);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -473,16 +428,14 @@ describe('handleSendMessage', () => {
   describe('OpenAI thread management', () => {
     it('should create new thread when user has no existing thread', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue(undefined);
       mockOpenAIService.createThread.mockResolvedValue({
         id: 'thread_new_123',
@@ -513,16 +466,14 @@ describe('handleSendMessage', () => {
 
     it('should use existing thread when user has one', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_existing_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -544,16 +495,14 @@ describe('handleSendMessage', () => {
 
     it('should add message to thread with correct prompt format', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Test message content',
-        },
+        query: { username: 'testuser' },
+        body: 'Test message content',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -585,16 +534,14 @@ describe('handleSendMessage', () => {
 
     it('should return 500 when thread creation fails', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue(undefined);
       mockOpenAIService.createThread.mockRejectedValue(
         new Error('Thread creation failed'),
@@ -611,16 +558,14 @@ describe('handleSendMessage', () => {
 
     it('should return 500 when adding message to thread fails', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockRejectedValue(
         new Error('Failed to add message'),
@@ -639,16 +584,14 @@ describe('handleSendMessage', () => {
   describe('Successful message sending', () => {
     it('should return 200 with success response when message is sent', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -674,16 +617,14 @@ describe('handleSendMessage', () => {
 
     it('should call services in correct order', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
       mockSlackService.lookupUserByUsername.mockResolvedValue('U1234567890');
       mockSlackService.openDirectMessage.mockResolvedValue('D1234567890');
-      mockSlackService.sendMessage.mockResolvedValue(true);
+      mockSlackService.sendMarkdownMessage.mockResolvedValue(true);
       mockThreadStorage.get.mockReturnValue('thread_123');
       mockOpenAIService.addMessageToThread.mockResolvedValue({
         id: 'msg_123',
@@ -705,7 +646,7 @@ describe('handleSendMessage', () => {
       expect(mockSlackService.openDirectMessage).toHaveBeenCalledWith(
         'U1234567890',
       );
-      expect(mockSlackService.sendMessage).toHaveBeenCalledWith(
+      expect(mockSlackService.sendMarkdownMessage).toHaveBeenCalledWith(
         'D1234567890',
         'Hello world',
       );
@@ -720,10 +661,8 @@ describe('handleSendMessage', () => {
   describe('Error handling', () => {
     it('should return 500 when an unexpected error occurs', async () => {
       mockRequest = {
-        body: {
-          username: 'testuser',
-          message: 'Hello world',
-        },
+        query: { username: 'testuser' },
+        body: 'Hello world',
       };
       mockResponse = getMockResponse();
 
