@@ -17,10 +17,11 @@
     "test": "jest --verbose",
     "test:watch": "jest --verbose --watch",
     "test:coverage": "jest --verbose --coverage",
-    "test:ci": "jest --ci --verbose --coverage --watchAll=false"
+    "test:ci": "jest --ci --verbose --coverage --watchAll=false",
+    "ci:check": "./scripts/check-workflow.sh"
   },
   "keywords": [],
-  "author": "",
+  "author": "Paulo Junior",
   "license": "ISC",
   "dependencies": {
     "@types/express": "^4.17.23",
@@ -45,7 +46,6 @@
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "wait-on": "^8.0.3"
+    "typescript": "^5.8.3"
   }
 }
