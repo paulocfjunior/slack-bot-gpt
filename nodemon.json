@@ -8,5 +8,5 @@
     "*.test.ts",
     "*.spec.ts"
   ],
-  "exec": "ts-node --esm src/index.ts"
+  "exec": "NODE_NO_WARNINGS=1 node --loader ts-node/esm ./src/index.ts"
 }
