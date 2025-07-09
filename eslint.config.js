@@ -1,6 +1,6 @@
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
-import jest from 'eslint-plugin-jest';
+import pluginJest from 'eslint-plugin-jest';
 import tsparser from '@typescript-eslint/parser';
 import globals from "globals";
 

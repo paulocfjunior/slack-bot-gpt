@@ -1,5 +1,54 @@
 import axios from 'axios';
 
+interface SlackMember {
+  id: string;
+  name: string;
+  is_bot: boolean;
+  updated: number;
+  is_app_user: boolean;
+  team_id: string;
+  deleted: boolean;
+  color: string;
+  is_email_confirmed: boolean;
+  real_name: string;
+  tz: string;
+  tz_label: string;
+  tz_offset: number;
+  is_admin: boolean;
+  is_owner: boolean;
+  is_primary_owner: boolean;
+  is_restricted: boolean;
+  is_ultra_restricted: boolean;
+  who_can_share_contact_card: string;
+  profile?: {
+    real_name: string;
+    display_name: string;
+    avatar_hash: string;
+    real_name_normalized: string;
+    display_name_normalized: string;
+    image_24: string;
+    image_32: string;
+    image_48: string;
+    image_72: string;
+    image_192: string;
+    image_512: string;
+    image_1024: string;
+    image_original: string;
+    is_custom_image: boolean;
+    first_name: string;
+    last_name: string;
+    team: string;
+    title: string;
+    phone: string;
+    skype: string;
+    status_text: string;
+    status_text_canonical: string;
+    status_emoji: string;
+    status_emoji_display_info: string[];
+    status_expiration: number;
+  };
+}
+
 /**
  * Service for interacting with Slack API
  */
@@ -19,8 +68,10 @@ export class SlackService {
   async lookupUserByUsername(username: string): Promise<string | null> {
     try {
       // Remove @ symbol if present
-      const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
-      
+      const cleanUsername = username.startsWith('@')
+        ? username.slice(1)
+        : username;
+
       const response = await axios.post(
         `${this.baseURL}/users.lookupByEmail`,
         {
@@ -39,23 +90,21 @@ export class SlackService {
       }
 
       // If email lookup fails, try users.list to find by display name
-      const usersResponse = await axios.get(
-        `${this.baseURL}/users.list`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.botToken}`,
-            'Content-Type': 'application/json',
-          },
+      const usersResponse = await axios.get(`${this.baseURL}/users.list`, {
+        headers: {
+          Authorization: `Bearer ${this.botToken}`,
+          'Content-Type': 'application/json',
         },
-      );
+      });
 
       if (usersResponse.data.ok && usersResponse.data.members) {
-        const user = usersResponse.data.members.find((member: any) => 
-          member.name === cleanUsername || 
-          member.profile?.display_name === cleanUsername ||
-          member.profile?.real_name === cleanUsername
+        const user = usersResponse.data.members.find(
+          (member: SlackMember) =>
+            member.name === cleanUsername ||
+            member.profile?.display_name === cleanUsername ||
+            member.profile?.real_name === cleanUsername,
         );
-        
+
         if (user) {
           return user.id;
         }
@@ -124,7 +173,10 @@ export class SlackService {
       );
 
       if (!response.data.ok) {
-        console.error('Slack API error on chat.postMessage:', response.data.error);
+        console.error(
+          'Slack API error on chat.postMessage:',
+          response.data.error,
+        );
         return false;
       }
 
@@ -178,7 +230,11 @@ export class SlackService {
    * @param ts - The timestamp of the message to update
    * @returns Promise<boolean> - Success status
    */
-  async updateMessage(channel: string, text: string, ts: string): Promise<boolean> {
+  async updateMessage(
+    channel: string,
+    text: string,
+    ts: string,
+  ): Promise<boolean> {
     try {
       const response = await axios.post(
         `${this.baseURL}/chat.update`,
@@ -197,7 +253,9 @@ export class SlackService {
       );
 
       if (!response.data.ok) {
-        console.error('Slack API error on chat.update:', response.data.error, {ts});
+        console.error('Slack API error on chat.update:', response.data.error, {
+          ts,
+        });
         return false;
       }
 
@@ -231,7 +289,7 @@ export class SlackService {
         },
       );
 
-      return response.data.ts;
+      return response.data.ts || null;
     } catch (error) {
       console.error('Error sending typing indicator:', error);
       return null;

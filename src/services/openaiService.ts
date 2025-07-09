@@ -187,8 +187,7 @@ export class OpenAIService {
     let run: Run;
 
     do {
-      // Wait 1 second before checking again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       run = await this.getRunStatus(threadId, runId);
 

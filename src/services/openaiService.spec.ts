@@ -1,5 +1,13 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import axios from 'axios';
+
 import { OpenAIService } from './openaiService';
 
 // Mock axios
@@ -192,16 +200,17 @@ describe('OpenAIService', () => {
 
       mockedAxios.get.mockRejectedValue(new Error('API Error'));
 
-      await expect(
-        openaiService.getRunStatus(threadId, runId),
-      ).rejects.toThrow('Failed to get run status');
+      await expect(openaiService.getRunStatus(threadId, runId)).rejects.toThrow(
+        'Failed to get run status',
+      );
     });
   });
 
   describe('waitForRunCompletion', () => {
     beforeEach(() => {
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn) => {
+      jest.spyOn(global, 'setTimeout').mockImplementation(fn => {
         fn();
+        // eslint-disable-next-line no-undef
         return {} as unknown as NodeJS.Timeout;
       });
     });
@@ -376,9 +385,9 @@ describe('OpenAIService', () => {
 
       mockedAxios.get.mockRejectedValue(new Error('API Error'));
 
-      await expect(
-        openaiService.getThreadMessages(threadId),
-      ).rejects.toThrow('Failed to get thread messages');
+      await expect(openaiService.getThreadMessages(threadId)).rejects.toThrow(
+        'Failed to get thread messages',
+      );
     });
   });
 

@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 
-import { OpenAIService } from '../services/openaiService.js';
-import { SlackService } from '../services/slackService.js';
+import { OpenAIService } from '../services/openaiService';
+import { SlackService } from '../services/slackService';
 import {
   validateTimestamp,
   verifySlackSignature,
-} from '../utils/slackVerifier.js';
-import { ThreadStorage } from '../utils/threadStorage.js';
+} from '../utils/slackVerifier';
+import { ThreadStorage } from '../utils/threadStorage';
 
 // Persistent storage for user -> thread mapping
 const threadStorage = new ThreadStorage();
@@ -161,7 +161,12 @@ export const handleSlackEvents = async (
       const event = eventWrapper.event;
 
       // Only handle direct messages
-      if (event.type === 'message' && event.user && !event.hidden && event.channel.startsWith('D')) {
+      if (
+        event.type === 'message' &&
+        event.user &&
+        !event.hidden &&
+        event.channel.startsWith('D')
+      ) {
         const appId = event.app_id;
         if (appId === process.env.SLACK_BOT_APP_ID) {
           console.log('Acknoledged message from itself event', appId);
@@ -180,7 +185,12 @@ export const handleSlackEvents = async (
         );
 
         // Process the message asynchronously
-        handleDirectMessage(event, openaiService, slackService, messageTs).catch(error => {
+        handleDirectMessage(
+          event,
+          openaiService,
+          slackService,
+          messageTs,
+        ).catch(error => {
           console.error('Error in async message processing:', error);
         });
 

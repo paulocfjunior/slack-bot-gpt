@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
+
 import { SlackService } from './slackService';
 
 // Mock axios
@@ -19,7 +20,7 @@ describe('SlackService', () => {
     it('should send a message successfully', async () => {
       const channel = 'U1234567890';
       const text = 'Hello, world!';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: true },
       });
@@ -45,7 +46,7 @@ describe('SlackService', () => {
     it('should return false when Slack API returns error', async () => {
       const channel = 'U1234567890';
       const text = 'Hello, world!';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: false, error: 'channel_not_found' },
       });
@@ -71,7 +72,7 @@ describe('SlackService', () => {
     it('should return false when axios throws an error', async () => {
       const channel = 'U1234567890';
       const text = 'Hello, world!';
-      
+
       mockedAxios.post.mockRejectedValue(new Error('Network error'));
 
       const result = await slackService.sendMessage(channel, text);
@@ -95,7 +96,7 @@ describe('SlackService', () => {
     it('should handle empty message text', async () => {
       const channel = 'U1234567890';
       const text = '';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: true },
       });
@@ -122,14 +123,15 @@ describe('SlackService', () => {
   describe('sendTypingIndicator', () => {
     it('should send typing indicator successfully', async () => {
       const channel = 'U1234567890';
-      
+      const mockTimestamp = '1234567890.123456';
+
       mockedAxios.post.mockResolvedValue({
-        data: { ok: true },
+        data: { ok: true, ts: mockTimestamp },
       });
 
       const result = await slackService.sendTypingIndicator(channel);
 
-      expect(result).toBe(true);
+      expect(result).toBe(mockTimestamp);
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://slack.com/api/chat.postMessage',
         {
@@ -145,26 +147,26 @@ describe('SlackService', () => {
       );
     });
 
-    it('should return false when Slack API returns error', async () => {
+    it('should return null when Slack API returns error', async () => {
       const channel = 'U1234567890';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: false, error: 'invalid_channel' },
       });
 
       const result = await slackService.sendTypingIndicator(channel);
 
-      expect(result).toBe(false);
+      expect(result).toBeNull();
     });
 
-    it('should return false when axios throws an error', async () => {
+    it('should return null when axios throws an error', async () => {
       const channel = 'U1234567890';
-      
+
       mockedAxios.post.mockRejectedValue(new Error('Network error'));
 
       const result = await slackService.sendTypingIndicator(channel);
 
-      expect(result).toBe(false);
+      expect(result).toBe(null);
     });
   });
 
@@ -221,7 +223,7 @@ describe('SlackService', () => {
   describe('lookupUserByUsername', () => {
     it('should find user by username via email lookup', async () => {
       const username = 'testuser';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: true, user: { id: 'U1234567890', name: 'testuser' } },
       });
@@ -245,7 +247,7 @@ describe('SlackService', () => {
 
     it('should find user by username via users.list when email lookup fails', async () => {
       const username = 'testuser';
-      
+
       // Email lookup fails
       mockedAxios.post.mockResolvedValueOnce({
         data: { ok: false, error: 'users_not_found' },
@@ -256,7 +258,11 @@ describe('SlackService', () => {
         data: {
           ok: true,
           members: [
-            { id: 'U1234567890', name: 'testuser', profile: { display_name: 'Test User' } },
+            {
+              id: 'U1234567890',
+              name: 'testuser',
+              profile: { display_name: 'Test User' },
+            },
           ],
         },
       });
@@ -277,7 +283,7 @@ describe('SlackService', () => {
 
     it('should handle username with @ symbol', async () => {
       const username = '@testuser';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: true, user: { id: 'U1234567890', name: 'testuser' } },
       });
@@ -301,7 +307,7 @@ describe('SlackService', () => {
 
     it('should return null when user is not found', async () => {
       const username = 'nonexistentuser';
-      
+
       // Email lookup fails
       mockedAxios.post.mockResolvedValueOnce({
         data: { ok: false, error: 'users_not_found' },
@@ -312,7 +318,11 @@ describe('SlackService', () => {
         data: {
           ok: true,
           members: [
-            { id: 'U1234567890', name: 'otheruser', profile: { display_name: 'Other User' } },
+            {
+              id: 'U1234567890',
+              name: 'otheruser',
+              profile: { display_name: 'Other User' },
+            },
           ],
         },
       });
@@ -324,7 +334,7 @@ describe('SlackService', () => {
 
     it('should return null when axios throws an error', async () => {
       const username = 'testuser';
-      
+
       mockedAxios.post.mockRejectedValue(new Error('Network error'));
 
       const result = await slackService.lookupUserByUsername(username);
@@ -336,7 +346,7 @@ describe('SlackService', () => {
   describe('openDirectMessage', () => {
     it('should open DM channel successfully', async () => {
       const userId = 'U1234567890';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: true, channel: { id: 'D1234567890' } },
       });
@@ -360,7 +370,7 @@ describe('SlackService', () => {
 
     it('should return null when DM channel cannot be opened', async () => {
       const userId = 'U1234567890';
-      
+
       mockedAxios.post.mockResolvedValue({
         data: { ok: false, error: 'user_not_found' },
       });
@@ -372,7 +382,7 @@ describe('SlackService', () => {
 
     it('should return null when axios throws an error', async () => {
       const userId = 'U1234567890';
-      
+
       mockedAxios.post.mockRejectedValue(new Error('Network error'));
 
       const result = await slackService.openDirectMessage(userId);

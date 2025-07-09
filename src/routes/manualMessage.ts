@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { SlackService } from '../services/slackService';
+
 import { OpenAIService } from '../services/openaiService';
+import { SlackService } from '../services/slackService';
 import { ThreadStorage } from '../utils/threadStorage';
 
 // Types for the request body
@@ -23,17 +24,26 @@ interface SendMessageResponse {
  * @param body - The request body
  * @returns Validation result with error message if invalid
  */
-const validateSendMessageRequest = (body: any): { isValid: boolean; error?: string } => {
+const validateSendMessageRequest = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any,
+): { isValid: boolean; error?: string } => {
   if (!body) {
     return { isValid: false, error: 'Request body is required' };
   }
 
   if (!body.username || typeof body.username !== 'string') {
-    return { isValid: false, error: 'Username is required and must be a string' };
+    return {
+      isValid: false,
+      error: 'Username is required and must be a string',
+    };
   }
 
   if (!body.message || typeof body.message !== 'string') {
-    return { isValid: false, error: 'Message is required and must be a string' };
+    return {
+      isValid: false,
+      error: 'Message is required and must be a string',
+    };
   }
 
   if (body.username.trim().length === 0) {
@@ -52,7 +62,10 @@ const validateSendMessageRequest = (body: any): { isValid: boolean; error?: stri
  * @param req - Express request object
  * @param res - Express response object
  */
-export const handleSendMessage = async (req: Request, res: Response): Promise<void> => {
+export const handleSendMessage = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     // Validate request body
     const validation = validateSendMessageRequest(req.body);
@@ -71,7 +84,9 @@ export const handleSendMessage = async (req: Request, res: Response): Promise<vo
     const slackService = new SlackService(process.env.SLACK_BOT_TOKEN!);
 
     // Clean username (remove @ if present)
-    const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+    const cleanUsername = username.startsWith('@')
+      ? username.slice(1)
+      : username;
 
     // Look up user by username
     const userId = await slackService.lookupUserByUsername(cleanUsername);
@@ -109,7 +124,10 @@ export const handleSendMessage = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const openaiService = new OpenAIService(process.env.SLACK_BOT_OPENAI_API_KEY!, process.env.SLACK_BOT_OPENAI_ASSISTANT_ID!);
+    const openaiService = new OpenAIService(
+      process.env.SLACK_BOT_OPENAI_API_KEY!,
+      process.env.SLACK_BOT_OPENAI_ASSISTANT_ID!,
+    );
     const threadStorage = new ThreadStorage();
     let threadId = threadStorage.get(userId);
 
@@ -136,7 +154,6 @@ export const handleSendMessage = async (req: Request, res: Response): Promise<vo
       channelId,
     };
     res.status(200).json(response);
-
   } catch (error) {
     console.error('Error in handleSendMessage:', error);
     const response: SendMessageResponse = {
@@ -145,4 +162,4 @@ export const handleSendMessage = async (req: Request, res: Response): Promise<vo
     };
     res.status(500).json(response);
   }
-}; 
+};
