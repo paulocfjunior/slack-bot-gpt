@@ -235,10 +235,13 @@ src/
 │   ├── slackService.ts   # Slack API integration
 │   └── slackService.spec.ts # Tests for Slack service
 └── utils/
+    ├── routeInspector.ts  # Checks existing App Routes to print
+    ├── setupGracefulProcessEnd.ts  # Setup graceful Node Process termination
     ├── slackVerifier.ts  # Slack signature verification
     ├── slackVerifier.spec.ts # Tests for Slack verifier
     ├── threadStorage.ts  # File-based thread storage
-    └── threadStorage.spec.ts # Tests for thread storage
+    ├── threadStorage.spec.ts  # Tests for thread storage
+    └── validateEnvVars.ts # Checks if required env vars are present
 ```
 
 ## Error Handling
