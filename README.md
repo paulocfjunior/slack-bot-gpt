@@ -218,7 +218,13 @@ Debug endpoint to view current thread mappings. Only available in non-production
 ```
 src/
 ├── index.ts              # Main server entry point
+├── middleware/
+│   ├── errorHandler.ts   # Error handling and 404 middleware
+│   └── slackBodyParser.ts # Slack raw body parsing middleware
 ├── routes/
+│   ├── index.ts          # Main routes configuration
+│   ├── health.ts         # Health check endpoint
+│   ├── debug.ts          # Development debug endpoints
 │   ├── slackEvents.ts    # Slack events endpoint handler
 │   ├── slackEvents.spec.ts # Tests for Slack events
 │   ├── manualMessage.ts  # Manual message sending endpoint
