@@ -1,8 +1,13 @@
 import { Request, Response } from 'express';
 
+import InsightBuilder from '../services/blockBuilder';
 import { OpenAIService } from '../services/openaiService';
 import { SlackService } from '../services/slackService';
-import { generateKPIImage } from '../utils/generateKpiImage';
+import {
+  KPIImageChartData,
+  generateKPIImage,
+  generateKPIImageChart,
+} from '../utils/generateKpiImage';
 import { ThreadStorage } from '../utils/threadStorage';
 
 interface SendMessageResponse {
@@ -99,116 +104,73 @@ export const handleSendMessage = async (
       return;
     }
 
-    const image1Buffer = await generateKPIImage({
-      kpiName: 'Leads',
-      kpiValue: '875',
-      kpiFooterDiffColor: 'positive',
-      kpiFooterDiff: '+35%',
-    });
-
-    const image2Buffer = await generateKPIImage({
-      kpiName: 'Booking Rate',
-      kpiValue: '92%',
-      kpiFooterDiffColor: 'positive',
-      kpiFooterDiff: '+8%',
-    });
-
-    const image3Buffer = await generateKPIImage({
-      kpiName: 'Revenue/Job',
-      kpiValue: '569',
-      kpiFooterDiffColor: 'negative',
-      kpiFooterDiff: '-56%',
-    });
-
-    const insightBlocks = [];
-    const imageIds = [];
-
-    if (message.includes('[[KPI1]]')) {
-      const result = await slackService.sendImage(
-        channelId,
-        image1Buffer,
-        'kpi-1.png',
-      );
-      if (result) {
-        const [permalink, fileId] = result;
-        imageIds.push(fileId);
-        insightBlocks.push(
-          insightBlocksBuilder(
-            permalink,
-            'Top-of-funnel leakage',
-            'Lead-to-Appointment conversion fell to 28% - a 9 pp drop from last week. Consider reviewing lead source quality or contact speed.',
-            'One liner - one action you can take today to improve the above stat',
-          ),
-        );
-      }
+    function generateRandomKPINumbers(): number[] {
+      return Array.from({ length: 7 }, () => Math.floor(Math.random() * 100));
     }
 
-    if (message.includes('[[KPI2]]')) {
-      const result = await slackService.sendImage(
-        channelId,
-        image2Buffer,
-        'kpi-2.png',
-      );
-      if (result) {
-        const [permalink, fileId] = result;
-        imageIds.push(fileId);
-        insightBlocks.push(
-          insightBlocksBuilder(
-            permalink,
-            'Mid-to-bottom funnel momentum',
-            "This week's funnel is pacing 92% to target - keep up the momentum and you'll beat budget by Friday.",
-            'One liner - one action you can take today to improve the above stat',
-          ),
-        );
-      }
-    }
+    const testData: KPIImageChartData = {
+      kpiLeadsValue: '875',
+      kpiLeadsDiff: -0.28,
+      kpiBookingRateValue: '92%',
+      kpiBookingRateDiff: 0.08,
+      kpiRevenuePerJobValue: '$569',
+      kpiRevenuePerJobDiff: -0.56,
+      kpiRevenueValue: '$0.46 M',
+      kpiRevenueDiff: -0.36,
+      kpiLeadsDataArray: generateRandomKPINumbers(),
+      kpiBookingRateDataArray: generateRandomKPINumbers(),
+      kpiRevenuePerJobDataArray: generateRandomKPINumbers(),
+      kpiRevenueDataArray: generateRandomKPINumbers(),
+    };
 
-    if (message.includes('[[KPI3]]')) {
-      const result = await slackService.sendImage(
-        channelId,
-        image3Buffer,
-        'kpi-3.png',
-      );
-      if (result) {
-        const [permalink, fileId] = result;
-        imageIds.push(fileId);
-        insightBlocks.push(
-          insightBlocksBuilder(
-            permalink,
-            'RUN-TO CONVERSION ISSUE',
-            'TO% on Run jobs dropped to 22%, down from 30% - opportunity creation is stalling. Retrain on TO discovery cues.',
-            'One liner - one action you can take today to improve the above stat',
-          ),
-        );
-      }
-    }
+    const buffer = await generateKPIImageChart(testData);
 
-    // Verify that all uploaded images are accessible before sending the message
-    if (imageIds.length > 0) {
-      console.log(`Verifying ${imageIds.length} uploaded images...`);
+    const insightBuilder = new InsightBuilder();
 
-      const verificationPromises = imageIds.map(id =>
-        slackService.waitForFileUpload(id),
-      );
+    insightBuilder.text('Here are your daily insights:');
 
-      const verificationResults = await Promise.all(verificationPromises);
+    const result = await slackService.uploadImage(buffer, 'kpi.png');
+    if (result) {
+      const [permalink, fileId] = result;
 
-      if (verificationResults.some(result => result === false)) {
+      const isUploaded = await slackService.waitForFileUpload(fileId);
+
+      if (isUploaded === false) {
         const response: SendMessageResponse = {
           success: false,
-          error: 'Some images were not uploaded',
+          error: 'KPI image was not uploaded',
         };
         res.status(500).json(response);
         return;
       }
 
-      console.log('All images uploaded successfully');
+      insightBuilder.image(permalink);
     }
+
+    insightBuilder
+      .insight(
+        'Inbound Leads (inbound calls greater than 30s) from New Customers fell 30%.',
+        'Discuss with Marketing if there has been a drop in leads coming from Ad campaigns.',
+      )
+      .insight(
+        "This week's funnel is pacing 92% to target - keep up the momentum and you'll beat budget by Friday.",
+        'One liner - one action you can take today to improve the above stat',
+      )
+      .insight(
+        'Revenue per Job (T2W) has dropped 56%.',
+        "Project Manager A has a 30% close rate missing the target by 10 percentage points. Are they following Larrin's sales training?  How many estimates are they creating per sales job?",
+        'Overall Service Revenue per Job dropped to $289 (target = $325) since all technicians have not met the target. Review the # estimates created per service job and time on job. You may also want to review service job pricing',
+      )
+      .insight(
+        'Total Sales Opportunities (T2W) has been 166 opportunities missing the 354 target.',
+        'On Service Jobs, Technician TO%has dropped to 31% (target = 40%) due to Technician A TO% = 12% and Technician D TO% = 14%.  Understand if their jobs were on equipment over 10+ years and coach them turning over jobs with high repair costs.',
+        'On Maintenance Jobs, the number of Replacement Opportunities been down 14% from previous month due to 35% lower maintenance calls performed.  Review customer memberships to increase maintenance call bookings',
+      );
 
     // Send the message
     const messageSent = await slackService.sendBlocks(
       channelId,
-      insightBlocks.flat(),
+      insightBuilder.getBlocks(),
     );
     if (!messageSent) {
       const response: SendMessageResponse = {
@@ -260,51 +222,3 @@ export const handleSendMessage = async (
     res.status(500).json(response);
   }
 };
-
-function insightBlocksBuilder(
-  insightImageUrl: string,
-  insightTitle: string,
-  insightText: string,
-  insightOneLiner: string,
-) {
-  return [
-    {
-      type: 'image',
-      image_url: insightImageUrl,
-      alt_text: insightTitle,
-    },
-    {
-      type: 'rich_text',
-      elements: [
-        {
-          type: 'rich_text_quote',
-          elements: [
-            {
-              type: 'text',
-              text: `${insightTitle}\n`,
-            },
-            {
-              type: 'text',
-              text: `${insightText}\n`,
-            },
-            {
-              type: 'emoji',
-              name: 'zap',
-            },
-            {
-              type: 'text',
-              text: ' ',
-            },
-            {
-              type: 'text',
-              text: `${insightOneLiner}`,
-              style: {
-                italic: true,
-              },
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}

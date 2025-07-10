@@ -2,10 +2,24 @@ import { beforeAll, describe, expect, it } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 
-import { generateKPIImage } from './generateKpiImage';
+import {
+  KPIImageChartData,
+  KPIImageData,
+  generateKPIImage,
+  generateKPIImageChart,
+} from './generateKpiImage';
+
+function generateRandomKPINumbers(): number[] {
+  return Array.from({ length: 14 }, () => Math.floor(Math.random() * 100));
+}
+
+interface TestConfig {
+  name: string;
+  data: KPIImageData;
+}
 
 // Test data configurations for different scenarios
-const testConfigs = [
+const testConfigs: TestConfig[] = [
   {
     name: 'Positive KPI',
     data: {
@@ -73,9 +87,41 @@ describe('generateKPIImage', () => {
     }
   });
 
+  describe.only('generateKPIImageChart', () => {
+    it('should generate a PNG buffer for valid KPI data (Chart)', async () => {
+      const testData: KPIImageChartData = {
+        kpiLeadsValue: '875',
+        kpiLeadsDiff: -0.28,
+        kpiBookingRateValue: '92%',
+        kpiBookingRateDiff: 0.08,
+        kpiRevenuePerJobValue: '$569',
+        kpiRevenuePerJobDiff: -0.56,
+        kpiRevenueValue: '$0.46 M',
+        kpiRevenueDiff: -0.36,
+        kpiLeadsDataArray: generateRandomKPINumbers(),
+        kpiBookingRateDataArray: generateRandomKPINumbers(),
+        kpiRevenuePerJobDataArray: generateRandomKPINumbers(),
+        kpiRevenueDataArray: generateRandomKPINumbers(),
+      };
+
+      const buffer = await generateKPIImageChart(testData);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer.length).toBeGreaterThan(0);
+
+      // Save the image for visual inspection
+      const filename = `kpi-chart-test.png`;
+      const filepath = path.join(outputDir, filename);
+      fs.writeFileSync(filepath, buffer);
+
+      // Verify file was created and has content
+      expect(fs.existsSync(filepath)).toBe(true);
+      expect(fs.statSync(filepath).size).toBeGreaterThan(0);
+    });
+  });
+
   describe('Basic functionality', () => {
     it('should generate a PNG buffer for valid KPI data', async () => {
-      const testData = {
+      const testData: KPIImageData = {
         kpiName: 'Test KPI',
         kpiValue: '$50,000',
         kpiFooterDiffColor: 'positive',
@@ -95,7 +141,7 @@ describe('generateKPIImage', () => {
     });
 
     it('should handle different KPI data types', async () => {
-      const testCases = [
+      const testCases: KPIImageData[] = [
         {
           kpiName: 'Percentage',
           kpiValue: '15.5%',
@@ -146,7 +192,7 @@ describe('generateKPIImage', () => {
 
   describe('Edge cases', () => {
     it('should handle empty footer diff color', async () => {
-      const testData = {
+      const testData: KPIImageData = {
         kpiName: 'Test KPI',
         kpiValue: '$50,000',
         kpiFooterDiffColor: '',
@@ -159,7 +205,7 @@ describe('generateKPIImage', () => {
     });
 
     it('should handle very long KPI names', async () => {
-      const testData = {
+      const testData: KPIImageData = {
         kpiName:
           'This is a very long KPI name that might cause layout issues in the template',
         kpiValue: '$50,000',
@@ -173,7 +219,7 @@ describe('generateKPIImage', () => {
     });
 
     it('should handle very large values', async () => {
-      const testData = {
+      const testData: KPIImageData = {
         kpiName: 'Large Value Test',
         kpiValue: '$999,999,999,999.99',
         kpiFooterDiffColor: 'positive',
@@ -226,12 +272,7 @@ export const generateAllTestImages = async (): Promise<void> => {
 };
 
 export const generateCustomTestImage = async (
-  customData: {
-    kpiName: string;
-    kpiValue: string;
-    kpiFooterDiffColor: string;
-    kpiFooterDiff: string;
-  },
+  customData: KPIImageData,
   filename?: string,
 ): Promise<string> => {
   console.log('🎨 Generating custom KPI image...');
@@ -251,7 +292,7 @@ export const generateCustomTestImage = async (
 export const quickTest = async (): Promise<void> => {
   console.log('⚡ Running quick test...');
 
-  const sampleData = {
+  const sampleData: KPIImageData = {
     kpiName: 'Quick Test KPI',
     kpiValue: '$50,000',
     kpiFooterDiffColor: 'positive',

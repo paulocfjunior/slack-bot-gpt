@@ -353,15 +353,19 @@ export class SlackService {
     }
   }
 
-  async sendImage(
-    channel: string,
+  async uploadImage(
     imageBuffer: Buffer,
     filename: string,
+    channel?: string,
   ): Promise<[string, string] | false> {
     try {
       const form = new FormData();
       form.append('filename', filename);
       form.append('length', imageBuffer.length.toString());
+
+      if (channel) {
+        form.append('channel', channel);
+      }
 
       // 1. Get upload URL and file_id
       const { data: presign } = await axios.post(

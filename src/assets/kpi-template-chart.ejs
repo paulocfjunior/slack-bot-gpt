@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 12px 24px;
+        transform-origin: top left;
+        font-family: 'Poppins', sans-serif;
+      }
+      .kpi-card {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        justify-content: start;
+        font-family: 'Inter', sans-serif;
+        width: 100%;
+        padding: 16px 0;
+        border-top: 1px solid #F1F4FD;
+      }
+      .kpi-card .name {
+        font-size: 13px;
+        line-height: 16px;
+        letter-spacing: -0.01em;
+        color: #5C5C5C;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      .value {
+        font-size: 28px;
+        line-height: 24px;
+        font-weight: 500;
+        color: #000000;
+      }
+      .footer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+      }
+      .footer-diff {
+        font-size: 13px;
+        line-height: 16px;
+        font-weight: 600;
+        color: #696868;
+      }
+      .footer-budget {
+        font-size: 13px;
+        line-height: 16px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: #93A3AB;
+      }
+      .footer-diff.positive {
+        color: #65C565;
+      }
+      .footer-diff.negative {
+        color: #E02424;
+      }
+      .chart-container {
+        width: 100%;
+        height: 50px;
+      }
+      canvas {
+        width: 100%;
+        height: 50px;
+      }
+      .container .header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .container .header .header-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        font-size: 20px;
+        line-height: 20px;
+        color: #000000;
+      }
+      .container .header .header-pill {
+        background-color: #EBF5FF;
+        border-radius: 100px;
+        padding: 4px 14px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        color: #1C64F2;
+      }
+      .container .kpi-card-content {
+        display: grid;
+        grid-template-columns: 50% 50%;
+        height: 100%;
+        width: 100%;
+        align-items: center;
+      }
+      .container .kpi-card-content-left {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        justify-content: start;
+        gap: 12px;
+        border-right: 1px solid #F1F4FD;
+      }
+      .container .kpi-card-content-right {
+        width: 100%;
+        max-width: 160px;
+        height: 100%;
+      }
+      .container .kpi-card-content-right canvas {
+        margin: 8px;
+        width: 100%;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 class="header-title">Sales Funnel</h1>
+        <div class="header-right">
+          <div class="header-pill">
+            <span>T2W</span>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="name">Leads</div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-content-left">
+            <div class="value"><%= kpiLeadsValue %></div>
+            <div class="footer">
+              <div class="footer-diff <%= kpiLeadsDiff > 0 ? 'positive' : 'negative' %>">
+                <%= kpiLeadsDiff > 0 ? '+' : '' %><%= Math.round(kpiLeadsDiff * 100) %>%
+              </div>
+              <div class="footer-budget">
+                vs. {Target Value}
+              </div>
+            </div>
+          </div>
+          <div class="kpi-card-content-right">
+            <canvas id="kpiLeadsChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="name">Booking Rate</div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-content-left">
+            <div class="value"><%= kpiBookingRateValue %></div>
+            <div class="footer">
+              <div class="footer-diff <%= kpiBookingRateDiff > 0 ? 'positive' : 'negative' %>">
+                <%= kpiBookingRateDiff > 0 ? '+' : '' %><%= Math.round(kpiBookingRateDiff * 100) %>%
+              </div>
+              <div class="footer-budget">
+                vs. {Target Value}
+              </div>
+            </div>
+          </div>
+          <div class="kpi-card-content-right">
+            <canvas id="kpiBookingRateChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="name">Revenue / Job</div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-content-left">
+            <div class="value"><%= kpiRevenuePerJobValue %></div>
+            <div class="footer">
+              <div class="footer-diff <%= kpiRevenuePerJobDiff > 0 ? 'positive' : 'negative' %>">
+                <%= kpiRevenuePerJobDiff > 0 ? '+' : '' %><%= Math.round(kpiRevenuePerJobDiff * 100) %>%
+              </div>
+              <div class="footer-budget">
+                vs. {Target Value}
+              </div>
+            </div>
+          </div>
+          <div class="kpi-card-content-right">
+            <canvas id="kpiRevenuePerJobChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="name">Total HVAC Residential Revenue</div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-content-left">
+            <div class="value"><%= kpiRevenueValue %></div>
+            <div class="footer">
+              <div class="footer-diff <%= kpiRevenueDiff > 0 ? 'positive' : 'negative' %>">
+                <%= kpiRevenueDiff > 0 ? '+' : '' %><%= Math.round(kpiRevenueDiff * 100) %>%
+              </div>
+              <div class="footer-budget">
+                vs. {Target Value}
+              </div>
+            </div>
+          </div>
+          <div class="kpi-card-content-right">
+            <canvas id="kpiRevenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function buildChartProps(dataArray, lineColor) {
+        return {
+          type: 'line',
+          data: {
+            labels: Array(dataArray.length).fill(''),
+            datasets: [{
+              data: dataArray,
+              borderColor: lineColor,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.4,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            },
+            scales: {
+              x: { display: false },
+              y: { display: false }
+            },
+            elements: {
+              line: {
+                borderCapStyle: 'round'
+              }
+            }
+          }
+        }
+      }
+      function createChart(elementId, dataArray, lineColor) {
+        const ctx = document.getElementById(elementId).getContext('2d');
+        new Chart(ctx, buildChartProps(dataArray, lineColor));
+      }
+
+      createChart('kpiLeadsChart', <%- JSON.stringify(kpiLeadsDataArray) %>, "<%- kpiLeadsDiff > 0 ? '#65C565' : '#E02424' %>");
+      createChart('kpiBookingRateChart', <%- JSON.stringify(kpiBookingRateDataArray) %>, "<%- kpiBookingRateDiff > 0 ? '#65C565' : '#E02424' %>");
+      createChart('kpiRevenuePerJobChart', <%- JSON.stringify(kpiRevenuePerJobDataArray) %>, "<%- kpiRevenuePerJobDiff > 0 ? '#65C565' : '#E02424' %>");
+      createChart('kpiRevenueChart', <%- JSON.stringify(kpiRevenueDataArray) %>, "<%- kpiRevenueDiff > 0 ? '#65C565' : '#E02424' %>");
+    </script>
+  </body>
+</html>
