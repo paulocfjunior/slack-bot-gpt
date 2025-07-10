@@ -14,6 +14,7 @@ yarn-error.log*
 
 # Local storage files
 user-threads.json
+slack-users-cache.json
 test-output/
 
 # Build output

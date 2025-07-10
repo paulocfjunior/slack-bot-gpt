@@ -3,6 +3,7 @@
   "ext": "ts,js,json",
   "ignore": [
     "user-threads.json",
+    "slack-users-cache.json",
     "node_modules/**/*",
     "dist/**/*",
     "*.test.ts",
